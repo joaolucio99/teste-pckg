@@ -727,6 +727,7 @@ class SuitabilityModalEditable extends StatefulWidget {
   final Color primaryColor;
   final List<Sections> suitabilityQuestions;
   final Future<void> Function(Map<String, dynamic> formData) apiCallFunction;
+  final Future<void> Function()? onCloseFunction;
   final String? pathImageConfig;
   final ShareIcons shareIcons;
 
@@ -735,6 +736,7 @@ class SuitabilityModalEditable extends StatefulWidget {
     required this.primaryColor,
     required this.suitabilityQuestions,
     required this.apiCallFunction,
+    this.onCloseFunction,
     this.shareIcons = const ShareIcons(),
     this.pathImageConfig,
   }) : super(key: key);
@@ -919,8 +921,11 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
     Overlay.of(context)?.insert(overlayEntry!);
   }
 
-  void _showOverlayNewQuestion(BuildContext context,
-      {Question? question, int? index}) {
+  void _showOverlayNewQuestion(
+    BuildContext context, {
+    Question? question,
+    int? index,
+  }) {
     final _answerType = [
       Answers(name: 'Slider'),
       Answers(name: 'Múltipla escolha'),
@@ -1399,7 +1404,11 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
             color: PackageColors.fiord,
             size: 36,
           ),
-          onTap: () => _removeDialog(overlayEntry),
+          onTap: () {
+            _removeDialog(overlayEntry);
+
+            widget.onCloseFunction?.call();
+          },
         )
       ]),
       const SizedBox(height: 50),
