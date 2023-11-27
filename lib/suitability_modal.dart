@@ -12,16 +12,20 @@ class SuitabilityModal extends StatefulWidget {
   final Color primaryColor;
   final List<Sections> suitabilityQuestions;
   final Future<void> Function(Map<String, dynamic> formData) apiCallFunction;
+  final Future<void> Function()? onCloseFunction;
   final String? pathImageConfig;
   final ShareIcons shareIcons;
+  final bool readOnly;
 
   const SuitabilityModal({
     Key? key,
     required this.primaryColor,
     required this.suitabilityQuestions,
     required this.apiCallFunction,
-    this.shareIcons = const ShareIcons(),
     this.pathImageConfig,
+    this.onCloseFunction,
+    this.shareIcons = const ShareIcons(),
+    this.readOnly = false,
   }) : super(key: key);
 
   @override
@@ -32,8 +36,7 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
   OverlayEntry? overlayEntry;
   double _currentSliderValue = 25;
   final String suitabilityProfile = 'CONSERVADOR';
-  final String suitabilityProfileMsg =
-      'Para você, segurança vem em primeiro lugar. Sua prioridade é não correr risco, mesmo que seu potencial de ganho seja um pouco menor';
+  final String suitabilityProfileMsg = 'Para você, segurança vem em primeiro lugar. Sua prioridade é não correr risco, mesmo que seu potencial de ganho seja um pouco menor';
   bool loading = false;
   bool goToNextPage = false;
   bool resultSuitabilityPage = false;
@@ -66,353 +69,247 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
     });
   }
 
-  @override
-  void dispose() {
-    overlayEntry?.remove();
-    scrollController.dispose();
-    updateGoToNextPage.dispose();
-    pageSelected.dispose();
-
-    super.dispose();
-  }
-
   void _showOverlay(BuildContext context) {
     overlayEntry = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black.withOpacity(0.5),
-            ),
-          ),
-          Positioned.fill(
-            child: SingleChildScrollView(
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 150.0, right: 150, top: 40, bottom: 100),
-                child: Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      double width = constraints.maxWidth < 800
-                          ? 800
-                          : constraints.maxWidth;
+      builder: (context) => Positioned.fill(
+        child: SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 150.0, right: 150, top: 40, bottom: 100),
+            child: Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double width = constraints.maxWidth < 800 ? 800 : constraints.maxWidth;
 
-                      return Material(
-                        color: Colors.white,
-                        elevation: 10,
-                        borderRadius: BorderRadius.circular(20),
-                        child: SizedBox(
-                          width: loading ? 600 : width,
-                          child: loading
-                              ? Container(
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: widget.primaryColor
-                                          .withOpacity(0.05)),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 120.0),
-                                    child: LoadingImageWidget(
-                                      primaryColor: widget.primaryColor,
-                                      pathImageConfig: widget.pathImageConfig,
+                  return Material(
+                    color: Colors.white,
+                    elevation: 10,
+                    borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      width: loading ? 600 : width,
+                      child: loading
+                          ? Container(
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: widget.primaryColor.withOpacity(0.05)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 120.0),
+                                child: LoadingImageWidget(
+                                  primaryColor: widget.primaryColor,
+                                  pathImageConfig: widget.pathImageConfig,
+                                ),
+                              ),
+                            )
+                          : Stack(
+                              children: [
+                                if (resultSuitabilityPage) ...[
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: PackageColors.whiteSmoke,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(20), // Defina o raio para o canto superior esquerdo
+                                        topRight: Radius.circular(20), // Defina o raio para o canto superior direito
+                                      ),
+                                    ),
+                                    height: 280,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.topRight,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 50, right: 50),
+                                      child: InkWell(
+                                        hoverColor: Colors.transparent,
+                                        splashColor: Colors.transparent,
+                                        highlightColor: Colors.transparent,
+                                        mouseCursor: SystemMouseCursors.click,
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: PackageColors.fiord,
+                                          size: 36,
+                                        ),
+                                        onTap: () => _removeDialog(overlayEntry),
+                                      ),
                                     ),
                                   ),
-                                )
-                              : Stack(
-                                  children: [
-                                    if (resultSuitabilityPage) ...[
-                                      Container(
-                                        decoration: const BoxDecoration(
-                                          color: PackageColors.whiteSmoke,
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(
-                                                20), // Defina o raio para o canto superior esquerdo
-                                            topRight: Radius.circular(
-                                                20), // Defina o raio para o canto superior direito
-                                          ),
-                                        ),
-                                        height: 280,
-                                      ),
-                                      Align(
-                                        alignment: Alignment.topRight,
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                              top: 50, right: 50),
-                                          child: InkWell(
-                                            hoverColor: Colors.transparent,
-                                            splashColor: Colors.transparent,
-                                            highlightColor: Colors.transparent,
-                                            mouseCursor:
-                                                SystemMouseCursors.click,
-                                            child: const Icon(
-                                              Icons.close,
-                                              color: PackageColors.fiord,
-                                              size: 36,
+                                  Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 48),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Text(
+                                              'O SEU PERFIL É',
+                                              style: TextStyle(color: PackageColors.blueBayoux, fontSize: 22),
                                             ),
-                                            onTap: () =>
-                                                _removeDialog(overlayEntry),
-                                          ),
-                                        ),
-                                      ),
-                                      Column(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 56, horizontal: 48),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Text(
-                                                  'O SEU PERFIL É',
-                                                  style: TextStyle(
-                                                      color: PackageColors
-                                                          .blueBayoux,
-                                                      fontSize: 22),
-                                                ),
-                                                const SizedBox(height: 16),
-                                                Container(
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10),
-                                                    color: widget.primaryColor
-                                                        .withOpacity(0.25),
-                                                  ),
-                                                  padding: const EdgeInsets
-                                                          .symmetric(
-                                                      horizontal: 48,
-                                                      vertical: 16),
-                                                  child: Text(
-                                                    suitabilityProfile
-                                                        .toUpperCase(),
-                                                    style: TextStyle(
-                                                        color:
-                                                            widget.primaryColor,
-                                                        fontSize: 32,
-                                                        fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 24),
-                                                Padding(
-                                                  padding: const EdgeInsets
-                                                          .symmetric(
-                                                      horizontal: 100.0),
-                                                  child: Text(
-                                                    suitabilityProfileMsg,
-                                                    textAlign: TextAlign.center,
-                                                    style: const TextStyle(
-                                                        color: PackageColors
-                                                            .blueBayoux,
-                                                        fontSize: 16),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 96),
-                                                const Text(
-                                                  'Produtos que combinam com seu perfil',
-                                                  style: TextStyle(
-                                                      color: PackageColors
-                                                          .blueBayoux,
-                                                      fontSize: 24),
-                                                ),
-                                                const SizedBox(height: 24),
-                                                Column(
-                                                  children: [
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceAround,
-                                                      children: [
-                                                        const Spacer(flex: 4),
-                                                        ProductsWidget(
-                                                          primaryColor: widget
-                                                              .primaryColor,
-                                                          updateGoToNextPage:
-                                                              updateGoToNextPage,
-                                                          goToNextPage:
-                                                              goToNextPage,
-                                                        ),
-                                                        const Spacer(),
-                                                        ProductsWidget(
-                                                          primaryColor: widget
-                                                              .primaryColor,
-                                                          updateGoToNextPage:
-                                                              updateGoToNextPage,
-                                                          goToNextPage:
-                                                              goToNextPage,
-                                                        ),
-                                                        const Spacer(),
-                                                        ProductsWidget(
-                                                          primaryColor: widget
-                                                              .primaryColor,
-                                                          updateGoToNextPage:
-                                                              updateGoToNextPage,
-                                                          goToNextPage:
-                                                              goToNextPage,
-                                                        ),
-                                                        const Spacer(),
-                                                        ProductsWidget(
-                                                          primaryColor: widget
-                                                              .primaryColor,
-                                                          updateGoToNextPage:
-                                                              updateGoToNextPage,
-                                                          goToNextPage:
-                                                              goToNextPage,
-                                                        ),
-                                                        const Spacer(flex: 4),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 40),
-                                                const Divider(
-                                                    color: PackageColors
-                                                        .whiteSmoke75),
-                                                const SizedBox(height: 32),
-                                                const Text(
-                                                  'COMPARTILHAR PERFIL DE INVESTIR',
-                                                  style: TextStyle(
-                                                      color: PackageColors
-                                                          .brightGrey,
-                                                      fontSize: 12),
-                                                ),
-                                                const SizedBox(height: 40),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: List.generate(
-                                                    3,
-                                                    (index) => Row(
-                                                      children: [
-                                                        ShareButton(
-                                                          icon: widget
-                                                              .shareIcons
-                                                              .getIcons[index],
-                                                          label: widget
-                                                              .shareIcons
-                                                              .getLabels[index],
-                                                          path: widget
-                                                              .shareIcons
-                                                              .getPaths[index],
-                                                          primaryColor: widget
-                                                              .primaryColor,
-                                                          onTap: widget
-                                                              .shareIcons
-                                                              .functions[index],
-                                                        ),
-                                                        const SizedBox(
-                                                            width: 24)
-                                                      ],
-                                                    ),
-                                                  ),
-                                                )
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: widget.primaryColor
-                                                  .withOpacity(0.25),
-                                              borderRadius:
-                                                  const BorderRadius.only(
-                                                bottomLeft: Radius.circular(
-                                                    20), // Defina o raio para o canto superior esquerdo
-                                                bottomRight: Radius.circular(
-                                                    20), // Defina o raio para o canto superior direito
+                                            const SizedBox(height: 16),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(10),
+                                                color: widget.primaryColor.withOpacity(0.25),
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                                              child: Text(
+                                                suitabilityProfile.toUpperCase(),
+                                                style: TextStyle(color: widget.primaryColor, fontSize: 32, fontWeight: FontWeight.bold),
                                               ),
                                             ),
-                                            height: 105,
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
+                                            const SizedBox(height: 24),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 100.0),
+                                              child: Text(
+                                                suitabilityProfileMsg,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(color: PackageColors.blueBayoux, fontSize: 16),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 96),
+                                            const Text(
+                                              'Produtos que combinam com seu perfil',
+                                              style: TextStyle(color: PackageColors.blueBayoux, fontSize: 24),
+                                            ),
+                                            const SizedBox(height: 24),
+                                            Column(
                                               children: [
-                                                SuitabilityButton(
-                                                  primaryColor:
-                                                      widget.primaryColor,
-                                                  label:
-                                                      'REFAZER O TESTE DE PERFIL',
-                                                  onTap: () {
-                                                    _localSuitabilityQuestions =
-                                                        widget
-                                                            .suitabilityQuestions
-                                                            .map((question) =>
-                                                                question
-                                                                    .deepCopy()) // Usa o método deepCopy
-                                                            .toList();
-
-                                                    pageSelected.value = 0;
-                                                    updateGoToNextPage.value =
-                                                        false;
-                                                    goToNextPage = false;
-                                                    resultSuitabilityPage =
-                                                        false;
-                                                    loading = false;
-
-                                                    sectionSelected =
-                                                        _localSuitabilityQuestions[
-                                                            pageSelected.value];
-
-                                                    overlayEntry
-                                                        ?.markNeedsBuild();
-                                                  },
-                                                ),
-                                                const SizedBox(width: 24),
-                                                SuitabilityButton(
-                                                  primaryColor:
-                                                      widget.primaryColor,
-                                                  alternativeButton: true,
-                                                  label: 'FALAR COM GERENTE',
-                                                  onTap: () {},
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                                  children: [
+                                                    const Spacer(flex: 4),
+                                                    ProductsWidget(
+                                                      primaryColor: widget.primaryColor,
+                                                      updateGoToNextPage: updateGoToNextPage,
+                                                      goToNextPage: goToNextPage,
+                                                    ),
+                                                    const Spacer(),
+                                                    ProductsWidget(
+                                                      primaryColor: widget.primaryColor,
+                                                      updateGoToNextPage: updateGoToNextPage,
+                                                      goToNextPage: goToNextPage,
+                                                    ),
+                                                    const Spacer(),
+                                                    ProductsWidget(
+                                                      primaryColor: widget.primaryColor,
+                                                      updateGoToNextPage: updateGoToNextPage,
+                                                      goToNextPage: goToNextPage,
+                                                    ),
+                                                    const Spacer(),
+                                                    ProductsWidget(
+                                                      primaryColor: widget.primaryColor,
+                                                      updateGoToNextPage: updateGoToNextPage,
+                                                      goToNextPage: goToNextPage,
+                                                    ),
+                                                    const Spacer(flex: 4),
+                                                  ],
                                                 ),
                                               ],
                                             ),
-                                          )
-                                        ],
+                                            const SizedBox(height: 40),
+                                            const Divider(color: PackageColors.whiteSmoke75),
+                                            const SizedBox(height: 32),
+                                            const Text(
+                                              'COMPARTILHAR PERFIL DE INVESTIR',
+                                              style: TextStyle(color: PackageColors.brightGrey, fontSize: 12),
+                                            ),
+                                            const SizedBox(height: 40),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: List.generate(
+                                                3,
+                                                (index) => Row(
+                                                  children: [
+                                                    ShareButton(
+                                                      icon: widget.shareIcons.getIcons[index],
+                                                      label: widget.shareIcons.getLabels[index],
+                                                      path: widget.shareIcons.getPaths[index],
+                                                      primaryColor: widget.primaryColor,
+                                                      onTap: widget.shareIcons.functions[index],
+                                                    ),
+                                                    const SizedBox(width: 24)
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                          ],
+                                        ),
                                       ),
-                                    ] else ...[
                                       Container(
-                                        decoration: const BoxDecoration(
-                                          color: PackageColors.whiteSmoke,
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(
-                                                20), // Defina o raio para o canto superior esquerdo
-                                            topRight: Radius.circular(
-                                                20), // Defina o raio para o canto superior direito
+                                        decoration: BoxDecoration(
+                                          color: widget.primaryColor.withOpacity(0.25),
+                                          borderRadius: const BorderRadius.only(
+                                            bottomLeft: Radius.circular(20), // Defina o raio para o canto superior esquerdo
+                                            bottomRight: Radius.circular(20), // Defina o raio para o canto superior direito
                                           ),
                                         ),
-                                        height: 310,
-                                      ),
-                                      Column(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 56, horizontal: 48),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                ..._header(),
-                                                ...questionsBuilder(),
-                                              ],
+                                        height: 105,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            SuitabilityButton(
+                                              primaryColor: widget.primaryColor,
+                                              label: 'REFAZER O TESTE DE PERFIL',
+                                              onTap: () {
+                                                _localSuitabilityQuestions = widget.suitabilityQuestions
+                                                    .map((question) => question.deepCopy()) // Usa o método deepCopy
+                                                    .toList();
+
+                                                pageSelected.value = 0;
+                                                updateGoToNextPage.value = false;
+                                                goToNextPage = false;
+                                                resultSuitabilityPage = false;
+                                                loading = false;
+
+                                                sectionSelected = _localSuitabilityQuestions[pageSelected.value];
+
+                                                overlayEntry?.markNeedsBuild();
+                                              },
                                             ),
-                                          ),
-                                          _footer(),
-                                        ],
+                                            const SizedBox(width: 24),
+                                            SuitabilityButton(
+                                              primaryColor: widget.primaryColor,
+                                              alternativeButton: true,
+                                              label: 'FALAR COM GERENTE',
+                                              onTap: () {},
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ] else ...[
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: PackageColors.whiteSmoke,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(20), // Defina o raio para o canto superior esquerdo
+                                        topRight: Radius.circular(20), // Defina o raio para o canto superior direito
                                       ),
-                                    ]
-                                  ],
-                                ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                                    ),
+                                    height: 310,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 48),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ..._header(),
+                                            ...questionsBuilder(),
+                                          ],
+                                        ),
+                                      ),
+                                      _footer(),
+                                    ],
+                                  ),
+                                ]
+                              ],
+                            ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
     Overlay.of(context)?.insert(overlayEntry!);
@@ -452,26 +349,20 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
       decoration: BoxDecoration(
         color: widget.primaryColor.withOpacity(0.25),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(
-              20), // Defina o raio para o canto superior esquerdo
-          bottomRight: Radius.circular(
-              20), // Defina o raio para o canto superior direito
+          bottomLeft: Radius.circular(20), // Defina o raio para o canto superior esquerdo
+          bottomRight: Radius.circular(20), // Defina o raio para o canto superior direito
         ),
       ),
       height: 105,
       child: Center(
           child: SuitabilityButton(
         primaryColor: widget.primaryColor,
-        label: pageSelected.value != _localSuitabilityQuestions.length - 1
-            ? 'CONTINUAR'
-            : 'VERIFICAR PERFIL DE INVESTIDOR',
+        label: pageSelected.value != _localSuitabilityQuestions.length - 1 ? 'CONTINUAR' : 'VERIFICAR PERFIL DE INVESTIDOR',
         onTap: () async {
-          if (_checkerNextPage() &&
-              pageSelected.value < _localSuitabilityQuestions.length) {
+          if (_checkerNextPage() && pageSelected.value < _localSuitabilityQuestions.length) {
             final maxPages = _localSuitabilityQuestions.length;
 
-            if (pageSelected.value < maxPages &&
-                pageSelected.value != maxPages) {
+            if (pageSelected.value < maxPages && pageSelected.value != maxPages) {
               goToNextPage = true;
               updateGoToNextPage.value = !updateGoToNextPage.value;
 
@@ -488,9 +379,7 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
             if (pageSelected.value == maxPages) {
               final map = <String, dynamic>{
                 'formData': <String, dynamic>{
-                  'sections': _localSuitabilityQuestions
-                      .map((question) => question.toJson())
-                      .toList(),
+                  'sections': _localSuitabilityQuestions.map((question) => question.toJson()).toList(),
                 }
               };
 
@@ -508,8 +397,7 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
                   );
                 });
               } catch (error) {
-                debugPrint(
-                    'error on call api in suitability modal => ${error.toString()}');
+                debugPrint('error on call api in suitability modal => ${error.toString()}');
               }
             }
           } else {
@@ -524,11 +412,7 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
   List<Widget> _header() {
     return [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('DEFINIR PERFIL DE INVESTIDOR',
-            style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: widget.primaryColor)),
+        Text('DEFINIR PERFIL DE INVESTIDOR', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.primaryColor)),
         InkWell(
           hoverColor: Colors.transparent,
           splashColor: Colors.transparent,
@@ -539,7 +423,11 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
             color: PackageColors.fiord,
             size: 36,
           ),
-          onTap: () => _removeDialog(overlayEntry),
+          onTap: () {
+            _removeDialog(overlayEntry);
+
+            widget.onCloseFunction?.call();
+          },
         )
       ]),
       const SizedBox(height: 50),
@@ -552,10 +440,7 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
         children: [
           Text(
             sectionSelected.name,
-            style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: PackageColors.blueBayoux),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: PackageColors.blueBayoux),
           ),
           bars(pageSelected: pageSelected.value),
         ],
@@ -595,25 +480,17 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
         children: [
           Text(
             'Pergunta ${index + 1}',
-            style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: PackageColors.brightGrey,
-                fontSize: 14),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: PackageColors.brightGrey, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-              child: Text(question,
-                  style: const TextStyle(
-                      color: PackageColors.brightGrey, fontSize: 16))),
+          SizedBox(child: Text(question, style: const TextStyle(color: PackageColors.brightGrey, fontSize: 16))),
           if (questionLayout == LayoutDesign.slider) ...[
             const SizedBox(height: 36),
             CustomSlider(
               primaryColor: widget.primaryColor,
               value: _currentSliderValue,
               divisions: 4, // Número de divisões do Slider
-              labels: answer
-                  .map((item) => item.name)
-                  .toList(), // Labels para os separadores
+              labels: answer.map((item) => item.name).toList(), // Labels para os separadores
               onChanged: (double value) async {
                 if (value >= 20) {
                   _currentSliderValue = value;
@@ -697,8 +574,7 @@ class _SuitabilityModalState extends State<SuitabilityModal> {
       child: Padding(
         padding: const EdgeInsets.only(top: 3),
         child: ClipRRect(
-          borderRadius:
-              BorderRadius.circular(5), // Ajuste o raio conforme necessário
+          borderRadius: BorderRadius.circular(5), // Ajuste o raio conforme necessário
           child: LinearProgressIndicator(
             color: widget.primaryColor,
             backgroundColor: PackageColors.gainsboro,
@@ -742,8 +618,7 @@ class SuitabilityModalEditable extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SuitabilityModalEditable> createState() =>
-      _SuitabilityModalEditableState();
+  State<SuitabilityModalEditable> createState() => _SuitabilityModalEditableState();
 }
 
 class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
@@ -752,10 +627,8 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
   OverlayEntry? overlayEntryConfirm;
 
   final String suitabilityProfile = 'CONSERVADOR';
-  final String suitabilityProfileMsg =
-      'Para você, segurança vem em primeiro lugar. Sua prioridade é não correr risco, mesmo que seu potencial de ganho seja um pouco menor';
-  final String errorMsg =
-      'Você não pode prosseguir com as perguntas e/ou título de seção com nome padrão';
+  final String suitabilityProfileMsg = 'Para você, segurança vem em primeiro lugar. Sua prioridade é não correr risco, mesmo que seu potencial de ganho seja um pouco menor';
+  final String errorMsg = 'Você não pode prosseguir com as perguntas e/ou título de seção com nome padrão';
 
   bool loading = false;
   bool resultSuitabilityPage = false;
@@ -798,124 +671,90 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
     pageSelected = ValueNotifier(0);
     scrollController = ScrollController();
     sectionSelected = _localSuitabilityQuestions[pageSelected.value];
-    _sectionNameController = TextEditingController(
-        text: _localSuitabilityQuestions[pageSelected.value].name);
+    _sectionNameController = TextEditingController(text: _localSuitabilityQuestions[pageSelected.value].name);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showOverlay(context);
 
       pageSelected.addListener(() {
         sectionSelected = _localSuitabilityQuestions[pageSelected.value];
-        _sectionNameController = TextEditingController(
-            text: _localSuitabilityQuestions[pageSelected.value].name);
+        _sectionNameController = TextEditingController(text: _localSuitabilityQuestions[pageSelected.value].name);
 
         overlayEntry?.markNeedsBuild();
       });
     });
   }
 
-  @override
-  void dispose() {
-    overlayEntry?.remove();
-    overlayEntryNewQuestion?.remove();
-    overlayEntryConfirm?.remove();
-    scrollController.dispose();
-    pageSelected.dispose();
-    _sectionNameController.dispose();
-
-    super.dispose();
-  }
-
   void _showOverlay(BuildContext context) {
     overlayEntry = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black.withOpacity(0.5),
-            ),
-          ),
-          Positioned.fill(
-            child: SingleChildScrollView(
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 150.0, right: 150, top: 40, bottom: 100),
-                child: Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      double width = constraints.maxWidth < 800
-                          ? 800
-                          : constraints.maxWidth;
+      builder: (context) => Positioned.fill(
+        child: SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 150.0, right: 150, top: 40, bottom: 100),
+            child: Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double width = constraints.maxWidth < 800 ? 800 : constraints.maxWidth;
 
-                      return Material(
-                        color: Colors.white,
-                        elevation: 10,
-                        borderRadius: BorderRadius.circular(20),
-                        child: SizedBox(
-                          width: loading ? 600 : width,
-                          child: loading
-                              ? Container(
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: widget.primaryColor
-                                          .withOpacity(0.05)),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 120.0),
-                                    child: LoadingImageWidget(
-                                      primaryColor: widget.primaryColor,
-                                      pathImageConfig: widget.pathImageConfig,
-                                    ),
-                                  ),
-                                )
-                              : Stack(
-                                  children: [
-                                    if (resultSuitabilityPage)
-                                      ...[]
-                                    else ...[
-                                      Container(
-                                        decoration: const BoxDecoration(
-                                          color: PackageColors.whiteSmoke,
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(
-                                                20), // Defina o raio para o canto superior esquerdo
-                                            topRight: Radius.circular(
-                                                20), // Defina o raio para o canto superior direito
-                                          ),
-                                        ),
-                                        height: 310,
-                                      ),
-                                      Column(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 56, horizontal: 48),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                ..._header(),
-                                                ...questionsBuilder(),
-                                              ],
-                                            ),
-                                          ),
-                                          _footer(),
-                                        ],
-                                      ),
-                                    ]
-                                  ],
+                  return Material(
+                    color: Colors.white,
+                    elevation: 10,
+                    borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      width: loading ? 600 : width,
+                      child: loading
+                          ? Container(
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: widget.primaryColor.withOpacity(0.05)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 120.0),
+                                child: LoadingImageWidget(
+                                  primaryColor: widget.primaryColor,
+                                  pathImageConfig: widget.pathImageConfig,
                                 ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                              ),
+                            )
+                          : Stack(
+                              children: [
+                                if (resultSuitabilityPage)
+                                  ...[]
+                                else ...[
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: PackageColors.whiteSmoke,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(20), // Defina o raio para o canto superior esquerdo
+                                        topRight: Radius.circular(20), // Defina o raio para o canto superior direito
+                                      ),
+                                    ),
+                                    height: 310,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 48),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ..._header(),
+                                            ...questionsBuilder(),
+                                          ],
+                                        ),
+                                      ),
+                                      _footer(),
+                                    ],
+                                  ),
+                                ]
+                              ],
+                            ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
     Overlay.of(context)?.insert(overlayEntry!);
@@ -957,344 +796,293 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
     }
 
     overlayEntryNewQuestion = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black.withOpacity(0.5),
-            ),
-          ),
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 380, right: 380, top: 40),
-              child: Center(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    double width =
-                        constraints.maxWidth < 450 ? 450 : constraints.maxWidth;
+      builder: (context) => Positioned.fill(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 380, right: 380, top: 40),
+          child: Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                double width = constraints.maxWidth < 450 ? 450 : constraints.maxWidth;
 
-                    return Material(
-                      color: Colors.white,
-                      elevation: 10,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 60, vertical: 40),
-                        width: width,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                return Material(
+                  color: Colors.white,
+                  elevation: 10,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
+                    width: width,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'Nova Pergunta',
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: PackageColors.blueBayoux),
-                                ),
-                                const Spacer(),
-                                InkWell(
-                                  hoverColor: Colors.transparent,
-                                  splashColor: Colors.transparent,
-                                  highlightColor: Colors.transparent,
-                                  mouseCursor: SystemMouseCursors.click,
-                                  child: const Icon(
-                                    Icons.close,
-                                    color: PackageColors.fiord,
-                                    size: 36,
-                                  ),
-                                  onTap: () {
-                                    for (var item in _answerControllers) {
-                                      item.dispose();
-                                    }
-                                    _questionController.dispose();
-                                    _errorController.dispose();
-
-                                    _removeDialog(overlayEntryNewQuestion);
-                                  },
-                                )
-                              ],
+                            const Text(
+                              'Nova Pergunta',
+                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: PackageColors.blueBayoux),
                             ),
-                            const SizedBox(height: 10),
-                            const Divider(
-                              color: PackageColors.whiteSmoke50,
-                            ),
-                            const SizedBox(height: 20),
-                            const Align(
-                              alignment: Alignment.topLeft,
-                              child: Text(
-                                'Selecione o tipo da pergunta: ',
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: PackageColors.blueBayoux),
+                            const Spacer(),
+                            InkWell(
+                              hoverColor: Colors.transparent,
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              mouseCursor: SystemMouseCursors.click,
+                              child: const Icon(
+                                Icons.close,
+                                color: PackageColors.fiord,
+                                size: 36,
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            CustomRadioButton(
-                              answers: _answerType,
-                              primaryColor: widget.primaryColor,
                               onTap: () {
-                                overlayEntryNewQuestion?.markNeedsBuild();
+                                for (var item in _answerControllers) {
+                                  item.dispose();
+                                }
+                                _questionController.dispose();
+                                _errorController.dispose();
+
+                                _removeDialog(overlayEntryNewQuestion);
                               },
-                              alternative: true,
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: InputSuitability(
-                                    controller: _questionController,
-                                    overlay: overlayEntryNewQuestion,
-                                    hintText: 'Digite a pergunta',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 20,
-                                  child: InputSuitability(
-                                    controller: _answerControllers[0],
-                                    overlay: overlayEntryNewQuestion,
-                                    hintText: 'Digite a opção de resposta 1',
-                                  ),
-                                ),
-                                const Spacer(),
-                                Expanded(
-                                  flex: 20,
-                                  child: InputSuitability(
-                                    controller: _answerControllers[1],
-                                    overlay: overlayEntryNewQuestion,
-                                    hintText: 'Digite a opção de resposta 2',
-                                  ),
-                                )
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 20,
-                                  child: InputSuitability(
-                                    controller: _answerControllers[2],
-                                    overlay: overlayEntryNewQuestion,
-                                    hintText: 'Digite a opção de resposta 3',
-                                  ),
-                                ),
-                                const Spacer(),
-                                Expanded(
-                                  flex: 20,
-                                  child: InputSuitability(
-                                    controller: _answerControllers[3],
-                                    overlay: overlayEntryNewQuestion,
-                                    hintText: 'Digite a opção de resposta 4',
-                                  ),
-                                )
-                              ],
-                            ),
-                            const SizedBox(height: 34),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SuitabilityButton(
-                                  primaryColor: widget.primaryColor,
-                                  label: 'Salvar',
-                                  onTap: () {
-                                    if (_checkerNewQuestionInputs(
-                                            _answerControllers, _answerType) &&
-                                        _questionController.text != '') {
-                                      late LayoutDesign _questionLayout;
-
-                                      for (var item in _answerType) {
-                                        if (item.selected) {
-                                          if (item.name == 'Slider') {
-                                            _questionLayout =
-                                                LayoutDesign.slider;
-                                          } else {
-                                            _questionLayout =
-                                                LayoutDesign.multipleChoice;
-                                          }
-                                        }
-                                      }
-
-                                      if (question != null) {
-                                        question.name =
-                                            _questionController.text;
-                                        question.answers
-                                          ..clear()
-                                          ..addAll(_answerControllers
-                                              .map((e) => Answers(name: e.text))
-                                              .toList());
-                                        question.layoutDesign = _questionLayout;
-                                      } else {
-                                        _localSuitabilityQuestions[
-                                                pageSelected.value]
-                                            .questions
-                                            .add(
-                                              Question(
-                                                name: _questionController.text,
-                                                answers: _answerControllers
-                                                    .map((e) =>
-                                                        Answers(name: e.text))
-                                                    .toList(),
-                                                layoutDesign: _questionLayout,
-                                              ),
-                                            );
-                                      }
-
-                                      _removeDialog(overlayEntryNewQuestion);
-
-                                      for (var item in _answerControllers) {
-                                        item.dispose();
-                                      }
-                                      _questionController.dispose();
-                                      _errorController.dispose();
-
-                                      overlayEntry?.markNeedsBuild();
-                                    } else {
-                                      _errorController.value =
-                                          !_errorController.value;
-                                    }
-                                  },
-                                ),
-                              ],
                             )
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                        const SizedBox(height: 10),
+                        const Divider(
+                          color: PackageColors.whiteSmoke50,
+                        ),
+                        const SizedBox(height: 20),
+                        const Align(
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            'Selecione o tipo da pergunta: ',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: PackageColors.blueBayoux),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        CustomRadioButton(
+                          answers: _answerType,
+                          primaryColor: widget.primaryColor,
+                          onTap: () {
+                            overlayEntryNewQuestion?.markNeedsBuild();
+                          },
+                          alternative: true,
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InputSuitability(
+                                controller: _questionController,
+                                overlay: overlayEntryNewQuestion,
+                                hintText: 'Digite a pergunta',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 20,
+                              child: InputSuitability(
+                                controller: _answerControllers[0],
+                                overlay: overlayEntryNewQuestion,
+                                hintText: 'Digite a opção de resposta 1',
+                              ),
+                            ),
+                            const Spacer(),
+                            Expanded(
+                              flex: 20,
+                              child: InputSuitability(
+                                controller: _answerControllers[1],
+                                overlay: overlayEntryNewQuestion,
+                                hintText: 'Digite a opção de resposta 2',
+                              ),
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 20,
+                              child: InputSuitability(
+                                controller: _answerControllers[2],
+                                overlay: overlayEntryNewQuestion,
+                                hintText: 'Digite a opção de resposta 3',
+                              ),
+                            ),
+                            const Spacer(),
+                            Expanded(
+                              flex: 20,
+                              child: InputSuitability(
+                                controller: _answerControllers[3],
+                                overlay: overlayEntryNewQuestion,
+                                hintText: 'Digite a opção de resposta 4',
+                              ),
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 34),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SuitabilityButton(
+                              primaryColor: widget.primaryColor,
+                              label: 'Salvar',
+                              onTap: () {
+                                if (_checkerNewQuestionInputs(_answerControllers, _answerType) && _questionController.text != '') {
+                                  late LayoutDesign _questionLayout;
+
+                                  for (var item in _answerType) {
+                                    if (item.selected) {
+                                      if (item.name == 'Slider') {
+                                        _questionLayout = LayoutDesign.slider;
+                                      } else {
+                                        _questionLayout = LayoutDesign.multipleChoice;
+                                      }
+                                    }
+                                  }
+
+                                  if (question != null) {
+                                    question.name = _questionController.text;
+                                    question.answers
+                                      ..clear()
+                                      ..addAll(_answerControllers.map((e) => Answers(name: e.text)).toList());
+                                    question.layoutDesign = _questionLayout;
+                                  } else {
+                                    _localSuitabilityQuestions[pageSelected.value].questions.add(
+                                          Question(
+                                            name: _questionController.text,
+                                            answers: _answerControllers.map((e) => Answers(name: e.text)).toList(),
+                                            layoutDesign: _questionLayout,
+                                          ),
+                                        );
+                                  }
+
+                                  _removeDialog(overlayEntryNewQuestion);
+
+                                  for (var item in _answerControllers) {
+                                    item.dispose();
+                                  }
+                                  _questionController.dispose();
+                                  _errorController.dispose();
+
+                                  overlayEntry?.markNeedsBuild();
+                                } else {
+                                  _errorController.value = !_errorController.value;
+                                }
+                              },
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-        ],
+        ),
       ),
     );
     Overlay.of(context)?.insert(overlayEntryNewQuestion!);
   }
 
-  void _showOverlayAlert(BuildContext context,
-      {required String msg,
-      Function()? onAccept,
-      Function()? onDecline,
-      Color? iconColor,
-      IconData? icon}) {
+  void _showOverlayAlert(BuildContext context, {required String msg, Function()? onAccept, Function()? onDecline, Color? iconColor, IconData? icon}) {
     overlayEntryConfirm = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black.withOpacity(0.5),
-            ),
-          ),
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 380, right: 380, top: 40),
-              child: Center(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Material(
-                      color: Colors.white,
-                      elevation: 10,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 15, vertical: 15),
-                        width: 340,
-                        height: 250,
-                        child: Stack(
+      builder: (context) => Positioned.fill(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 380, right: 380, top: 40),
+          child: Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Material(
+                  color: Colors.white,
+                  elevation: 10,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                    width: 340,
+                    height: 250,
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.topRight,
+                          child: InkWell(
+                            hoverColor: Colors.transparent,
+                            splashColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            mouseCursor: SystemMouseCursors.click,
+                            child: const Icon(
+                              Icons.close,
+                              color: PackageColors.fiord,
+                              size: 36,
+                            ),
+                            onTap: () {
+                              _removeDialog(overlayEntryConfirm);
+                            },
+                          ),
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: InkWell(
-                                hoverColor: Colors.transparent,
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                mouseCursor: SystemMouseCursors.click,
-                                child: const Icon(
-                                  Icons.close,
-                                  color: PackageColors.fiord,
-                                  size: 36,
-                                ),
-                                onTap: () {
-                                  _removeDialog(overlayEntryConfirm);
-                                },
+                            Icon(
+                              icon ?? Icons.cancel,
+                              size: 48,
+                              color: iconColor ?? PackageColors.red,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16.0),
+                              child: Text(
+                                msg,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: PackageColors.blueBayoux),
                               ),
                             ),
-                            Column(
+                            const SizedBox(height: 24),
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  icon ?? Icons.cancel,
-                                  size: 48,
-                                  color: iconColor ?? PackageColors.red,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 16.0),
-                                  child: Text(
-                                    msg,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: PackageColors.blueBayoux),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SuitabilityButton(
-                                      label: 'RECUSAR',
-                                      primaryColor: PackageColors.red,
-                                      alternativeButton: true,
-                                      onTap: () {
-                                        _removeDialog(overlayEntryConfirm);
+                                SuitabilityButton(
+                                  label: 'RECUSAR',
+                                  primaryColor: PackageColors.red,
+                                  alternativeButton: true,
+                                  onTap: () {
+                                    _removeDialog(overlayEntryConfirm);
 
-                                        onDecline?.call();
-                                      },
-                                      mini: true,
-                                    ),
-                                    const SizedBox(width: 15),
-                                    SuitabilityButton(
-                                      label: 'ACEITAR',
-                                      primaryColor:
-                                          PackageColors.darkPastelGreen,
-                                      alternativeButton: true,
-                                      onTap: () {
-                                        _removeDialog(overlayEntryConfirm);
+                                    onDecline?.call();
+                                  },
+                                  mini: true,
+                                ),
+                                const SizedBox(width: 15),
+                                SuitabilityButton(
+                                  label: 'ACEITAR',
+                                  primaryColor: PackageColors.darkPastelGreen,
+                                  alternativeButton: true,
+                                  onTap: () {
+                                    _removeDialog(overlayEntryConfirm);
 
-                                        onAccept?.call();
-                                      },
-                                      mini: true,
-                                    ),
-                                  ],
-                                )
+                                    onAccept?.call();
+                                  },
+                                  mini: true,
+                                ),
                               ],
-                            ),
+                            )
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-        ],
+        ),
       ),
     );
     Overlay.of(context)?.insert(overlayEntryConfirm!);
   }
 
-  bool _checkerNewQuestionInputs(
-      List<TextEditingController> textEditingControllers, List<Answers> types) {
+  bool _checkerNewQuestionInputs(List<TextEditingController> textEditingControllers, List<Answers> types) {
     var completeInputs = false;
 
     for (var item in textEditingControllers) {
@@ -1318,10 +1106,8 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
       decoration: BoxDecoration(
         color: widget.primaryColor.withOpacity(0.25),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(
-              20), // Defina o raio para o canto superior esquerdo
-          bottomRight: Radius.circular(
-              20), // Defina o raio para o canto superior direito
+          bottomLeft: Radius.circular(20), // Defina o raio para o canto superior esquerdo
+          bottomRight: Radius.circular(20), // Defina o raio para o canto superior direito
         ),
       ),
       height: 105,
@@ -1342,12 +1128,9 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
           const SizedBox(width: 24),
           SuitabilityButton(
             primaryColor: widget.primaryColor,
-            label: pageSelected.value != _localSuitabilityQuestions.length - 1
-                ? 'CONTINUAR'
-                : 'SALVAR MODELO',
+            label: pageSelected.value != _localSuitabilityQuestions.length - 1 ? 'CONTINUAR' : 'SALVAR MODELO',
             onTap: () async {
-              if (pageSelected.value != _localSuitabilityQuestions.length - 1 &&
-                  pageSelected.value < _localSuitabilityQuestions.length - 1) {
+              if (pageSelected.value != _localSuitabilityQuestions.length - 1 && pageSelected.value < _localSuitabilityQuestions.length - 1) {
                 pageSelected.value++;
 
                 overlayEntry?.markNeedsBuild();
@@ -1355,9 +1138,7 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
                 if (_localSuitabilityQuestions.isNotEmpty) {
                   final map = <String, dynamic>{
                     'formData': <String, dynamic>{
-                      'sections': _localSuitabilityQuestions
-                          .map((question) => question.toJson())
-                          .toList(),
+                      'sections': _localSuitabilityQuestions.map((question) => question.toJson()).toList(),
                     }
                   };
 
@@ -1374,8 +1155,7 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
                       );
                     });
                   } catch (error) {
-                    debugPrint(
-                        'error on call api in suitability modal => ${error.toString()}');
+                    debugPrint('error on call api in suitability modal => ${error.toString()}');
                   }
                 }
               }
@@ -1389,11 +1169,7 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
   List<Widget> _header() {
     return [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('DEFINIR PERFIL DE INVESTIDOR',
-            style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: widget.primaryColor)),
+        Text('DEFINIR PERFIL DE INVESTIDOR', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.primaryColor)),
         InkWell(
           hoverColor: Colors.transparent,
           splashColor: Colors.transparent,
@@ -1449,18 +1225,14 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
                   msg: 'Tem certeza que deseja criar uma nova seção?',
                   onAccept: () {
                     _localSuitabilityQuestions.add(Sections(
-                      name:
-                          'Nova Seção ${_localSuitabilityQuestions.length + 1}',
+                      name: 'Nova Seção ${_localSuitabilityQuestions.length + 1}',
                       questions: [
                         Question(
                           name: 'Exemplo Pergunta 1',
                           answers: [
-                            Answers(
-                                name: 'Exemplo resposta 1', selected: false),
-                            Answers(
-                                name: 'Exemplo resposta 2', selected: false),
-                            Answers(
-                                name: 'Exemplo resposta 3', selected: false),
+                            Answers(name: 'Exemplo resposta 1', selected: false),
+                            Answers(name: 'Exemplo resposta 2', selected: false),
+                            Answers(name: 'Exemplo resposta 3', selected: false),
                             Answers(name: 'Exemplo resposta 4', selected: false)
                           ],
                           layoutDesign: LayoutDesign.multipleChoice,
@@ -1498,11 +1270,8 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
                       if (pageSelected.value != 0) {
                         pageSelected.value--;
                       } else {
-                        sectionSelected =
-                            _localSuitabilityQuestions[pageSelected.value];
-                        _sectionNameController = TextEditingController(
-                            text: _localSuitabilityQuestions[pageSelected.value]
-                                .name);
+                        sectionSelected = _localSuitabilityQuestions[pageSelected.value];
+                        _sectionNameController = TextEditingController(text: _localSuitabilityQuestions[pageSelected.value].name);
                       }
 
                       overlayEntry?.markNeedsBuild();
@@ -1551,17 +1320,13 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
             },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 30),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: PackageColors.fiord)),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: PackageColors.fiord)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Column(
                     children: [
-                      Text('Adicionar nova pergunta',
-                          style: const TextStyle(
-                              color: PackageColors.fiord, fontSize: 16)),
+                      Text('Adicionar nova pergunta', style: const TextStyle(color: PackageColors.fiord, fontSize: 16)),
                       SizedBox(height: 8),
                       Icon(
                         Icons.add,
@@ -1581,19 +1346,12 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
     return res;
   }
 
-  Widget questionWidgetBuild(
-      {required LayoutDesign questionLayout,
-      required int index,
-      required String question,
-      required List<Answers> answer,
-      bool isLast = false}) {
+  Widget questionWidgetBuild({required LayoutDesign questionLayout, required int index, required String question, required List<Answers> answer, bool isLast = false}) {
     return Padding(
       padding: const EdgeInsets.only(top: 32),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 25),
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: PackageColors.fiord)),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: PackageColors.fiord)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1602,10 +1360,7 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
               children: [
                 Text(
                   'Pergunta ${index + 1}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: PackageColors.brightGrey,
-                      fontSize: 14),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: PackageColors.brightGrey, fontSize: 14),
                 ),
                 Spacer(),
                 Tooltip(
@@ -1617,8 +1372,7 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
                     onTap: () {
                       _showOverlayNewQuestion(
                         context,
-                        question: _localSuitabilityQuestions[pageSelected.value]
-                            .questions[index],
+                        question: _localSuitabilityQuestions[pageSelected.value].questions[index],
                         index: index,
                       );
                     },
@@ -1636,13 +1390,8 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
                     splashColor: Colors.transparent,
                     highlightColor: Colors.transparent,
                     onTap: () {
-                      if (_localSuitabilityQuestions[pageSelected.value]
-                              .questions
-                              .length >
-                          1) {
-                        _localSuitabilityQuestions[pageSelected.value]
-                            .questions
-                            .removeAt(index);
+                      if (_localSuitabilityQuestions[pageSelected.value].questions.length > 1) {
+                        _localSuitabilityQuestions[pageSelected.value].questions.removeAt(index);
 
                         overlayEntry?.markNeedsBuild();
                       }
@@ -1656,19 +1405,14 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
               ],
             ),
             const SizedBox(height: 8),
-            SizedBox(
-                child: Text(question,
-                    style: const TextStyle(
-                        color: PackageColors.brightGrey, fontSize: 16))),
+            SizedBox(child: Text(question, style: const TextStyle(color: PackageColors.brightGrey, fontSize: 16))),
             if (questionLayout == LayoutDesign.slider) ...[
               const SizedBox(height: 36),
               CustomSlider(
                 primaryColor: widget.primaryColor,
                 value: 25,
                 divisions: 4, // Número de divisões do Slider
-                labels: answer
-                    .map((item) => item.name)
-                    .toList(), // Labels para os separadores
+                labels: answer.map((item) => item.name).toList(), // Labels para os separadores
                 onChanged: (double value) async {},
                 disabled: true,
               )
@@ -1757,8 +1501,7 @@ class _SuitabilityModalEditableState extends State<SuitabilityModalEditable> {
       child: Padding(
         padding: const EdgeInsets.only(top: 3),
         child: ClipRRect(
-          borderRadius:
-              BorderRadius.circular(5), // Ajuste o raio conforme necessário
+          borderRadius: BorderRadius.circular(5), // Ajuste o raio conforme necessário
           child: LinearProgressIndicator(
             color: widget.primaryColor,
             backgroundColor: PackageColors.gainsboro,
@@ -1851,21 +1594,15 @@ class _InputSuitabilityState extends State<InputSuitability> {
         ),
       },
       child: Container(
-        padding: widget.hintText != null
-            ? null
-            : const EdgeInsets.symmetric(vertical: 4),
-        decoration: BoxDecoration(
-            border: Border.all(color: _activeColor),
-            borderRadius: BorderRadius.circular(10)),
+        padding: widget.hintText != null ? null : const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(border: Border.all(color: _activeColor), borderRadius: BorderRadius.circular(10)),
         child: RawKeyboardListener(
           autofocus: true,
           focusNode: _focus,
           onKey: (event) {
-            if (event is RawKeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.escape) {
+            if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
               _focus.unfocus();
-            } else if (event is RawKeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.tab) {
+            } else if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.tab) {
               _focus.nextFocus();
             }
           },
@@ -1874,14 +1611,10 @@ class _InputSuitabilityState extends State<InputSuitability> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.only(
-                    right: 20, top: 3, left: 20, bottom: 5),
+                padding: const EdgeInsets.only(right: 20, top: 3, left: 20, bottom: 5),
                 child: TextFormField(
                   focusNode: _focusText,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      color: PackageColors.blueBayoux,
-                      fontWeight: FontWeight.w400),
+                  style: const TextStyle(fontSize: 16, color: PackageColors.blueBayoux, fontWeight: FontWeight.w400),
                   controller: widget.controller,
                   cursorColor: PackageColors.blueBayoux,
                   onChanged: (value) {
@@ -1934,8 +1667,7 @@ class ShareButton extends StatefulWidget {
   State<ShareButton> createState() => _ShareButtonState();
 }
 
-class _ShareButtonState extends State<ShareButton>
-    with SingleTickerProviderStateMixin {
+class _ShareButtonState extends State<ShareButton> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<Color?> _colorAnimation;
 
@@ -1946,10 +1678,7 @@ class _ShareButtonState extends State<ShareButton>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _colorAnimation = ColorTween(
-            begin: widget.primaryColor,
-            end: widget.primaryColor.withOpacity(0.3))
-        .animate(_animationController)
+    _colorAnimation = ColorTween(begin: widget.primaryColor, end: widget.primaryColor.withOpacity(0.3)).animate(_animationController)
       ..addListener(() {
         setState(() {});
       });
@@ -1974,10 +1703,7 @@ class _ShareButtonState extends State<ShareButton>
           widget.onTap?.call();
         },
         child: AnimatedDefaultTextStyle(
-          style: TextStyle(
-              color: _colorAnimation.value ?? widget.primaryColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 16),
+          style: TextStyle(color: _colorAnimation.value ?? widget.primaryColor, fontWeight: FontWeight.bold, fontSize: 16),
           duration: const Duration(milliseconds: 100),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -2044,10 +1770,8 @@ class ProductsWidget extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.only(
-                topLeft:
-                    Radius.circular(17.0), // Raio da borda superior esquerda
-                topRight:
-                    Radius.circular(17.0), // Raio da borda inferior direita
+                topLeft: Radius.circular(17.0), // Raio da borda superior esquerda
+                topRight: Radius.circular(17.0), // Raio da borda inferior direita
               ),
               color: primaryColor.withOpacity(0.15),
             ),
@@ -2106,18 +1830,15 @@ class LoadingImageWidget extends StatefulWidget {
   State<LoadingImageWidget> createState() => _LoadingImageWidgetState();
 }
 
-class _LoadingImageWidgetState extends State<LoadingImageWidget>
-    with SingleTickerProviderStateMixin {
+class _LoadingImageWidgetState extends State<LoadingImageWidget> with SingleTickerProviderStateMixin {
   AnimationController? _controller;
   Animation<double>? _opacityAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1));
-    _opacityAnimation =
-        Tween<double>(begin: 0.5, end: 1.0).animate(_controller!);
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    _opacityAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(_controller!);
 
     _controller!.repeat(reverse: true);
   }
@@ -2145,8 +1866,7 @@ class _LoadingImageWidgetState extends State<LoadingImageWidget>
                 : Image.network(
                     widget.pathImageConfig!,
                     height: 150,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _defaultLoading(),
+                    errorBuilder: (context, error, stackTrace) => _defaultLoading(),
                   ),
           ] else ...[
             _defaultLoading()
@@ -2233,13 +1953,9 @@ class _SuitabilityButtonState extends State<SuitabilityButton> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300), // Duração da animação
-          padding: EdgeInsets.symmetric(
-              horizontal: widget.mini ? 20 : 72,
-              vertical: widget.mini ? 8 : 12),
+          padding: EdgeInsets.symmetric(horizontal: widget.mini ? 20 : 72, vertical: widget.mini ? 8 : 12),
           decoration: BoxDecoration(
-              color: widget.alternativeButton
-                  ? widget.primaryColor
-                  : Colors.transparent,
+              color: widget.alternativeButton ? widget.primaryColor : Colors.transparent,
               borderRadius: BorderRadius.circular(90),
               border: Border.all(
                 width: 2,
@@ -2328,12 +2044,9 @@ class _CustomRadioButtonState extends State<CustomRadioButton> {
     for (var answer in widget.answers) {
       res.add(
         Padding(
-          padding:
-              EdgeInsets.only(left: widget.alternative ? 0 : 40, bottom: 8),
+          padding: EdgeInsets.only(left: widget.alternative ? 0 : 40, bottom: 8),
           child: InkWell(
-            mouseCursor: widget.disabled
-                ? SystemMouseCursors.basic
-                : SystemMouseCursors.click,
+            mouseCursor: widget.disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
             hoverColor: Colors.transparent,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
@@ -2354,34 +2067,22 @@ class _CustomRadioButtonState extends State<CustomRadioButton> {
                   height: widget.alternative ? 20 : 12,
                   width: widget.alternative ? 20 : 12,
                   decoration: BoxDecoration(
-                    color: answer.selected
-                        ? widget.primaryColor
-                        : Colors.transparent, // Cor de fundo verde
+                    color: answer.selected ? widget.primaryColor : Colors.transparent, // Cor de fundo verde
                     shape: BoxShape.circle, // Forma circular
                     border: Border.all(
-                      color: answer.selected
-                          ? widget.primaryColor
-                          : PackageColors.linkWater, // Cor da borda
+                      color: answer.selected ? widget.primaryColor : PackageColors.linkWater, // Cor da borda
                       width: 1, // Espessura da borda
                     ),
                   ),
                   child: Center(
                     child: Container(
-                      height: widget.alternative
-                          ? 18
-                          : 10, // Altura do círculo interno
-                      width: widget.alternative
-                          ? 18
-                          : 10, // Largura do círculo interno
+                      height: widget.alternative ? 18 : 10, // Altura do círculo interno
+                      width: widget.alternative ? 18 : 10, // Largura do círculo interno
                       decoration: BoxDecoration(
-                        color: answer.selected
-                            ? widget.primaryColor
-                            : Colors.transparent, // Cor de fundo verde
+                        color: answer.selected ? widget.primaryColor : Colors.transparent, // Cor de fundo verde
                         shape: BoxShape.circle, // Forma circular
                         border: Border.all(
-                          color: answer.selected
-                              ? Colors.white
-                              : Colors.transparent, // Cor da borda
+                          color: answer.selected ? Colors.white : Colors.transparent, // Cor da borda
                           width: 1.5, // Espessura da borda
                         ),
                       ),
@@ -2392,18 +2093,14 @@ class _CustomRadioButtonState extends State<CustomRadioButton> {
                 if (widget.alternative) ...[
                   Text(
                     answer.name,
-                    style: const TextStyle(
-                        color: PackageColors.blueBayoux,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500),
+                    style: const TextStyle(color: PackageColors.blueBayoux, fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(width: 40),
                 ] else ...[
                   Expanded(
                     child: Text(
                       answer.name,
-                      style: const TextStyle(
-                          color: PackageColors.brightGrey, fontSize: 14),
+                      style: const TextStyle(color: PackageColors.brightGrey, fontSize: 14),
                     ),
                   )
                 ]
@@ -2455,12 +2152,8 @@ class CustomSlider extends StatelessWidget {
               activeTickMarkColor: primaryColor,
               inactiveTrackColor: PackageColors.whiteSmoke50,
               activeTrackColor: primaryColor,
-              tickMarkShape: CircleTickMarkShape(
-                  primaryColor: primaryColor,
-                  tickMarkRadius: 7,
-                  sliderValue: value),
-              thumbShape: CircleSliderThumb(
-                  thumbRadius: 10.0, primaryColor: primaryColor),
+              tickMarkShape: CircleTickMarkShape(primaryColor: primaryColor, tickMarkRadius: 7, sliderValue: value),
+              thumbShape: CircleSliderThumb(thumbRadius: 10.0, primaryColor: primaryColor),
             ),
             child: Slider(
               mouseCursor: disabled ? SystemMouseCursors.basic : null,
@@ -2488,8 +2181,7 @@ class CustomSlider extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildTextValues(
-      List<String> labels, double value, int selectedValue) {
+  List<Widget> _buildTextValues(List<String> labels, double value, int selectedValue) {
     final res = <Widget>[];
 
     for (var i = 0; i < labels.length; i++) {
@@ -2500,11 +2192,8 @@ class CustomSlider extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              fontWeight:
-                  selectedValue > value ? FontWeight.normal : FontWeight.bold,
-              color: selectedValue > value
-                  ? PackageColors.brightGrey
-                  : primaryColor,
+              fontWeight: selectedValue > value ? FontWeight.normal : FontWeight.bold,
+              color: selectedValue > value ? PackageColors.brightGrey : primaryColor,
             ),
           ),
         ),
@@ -2521,8 +2210,7 @@ class CircleSliderThumb extends SliderComponentShape {
   final double thumbRadius;
   final Color primaryColor;
 
-  const CircleSliderThumb(
-      {required this.thumbRadius, required this.primaryColor});
+  const CircleSliderThumb({required this.thumbRadius, required this.primaryColor});
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) {
@@ -2573,8 +2261,7 @@ class CircleTickMarkShape extends SliderTickMarkShape {
     this.tickMarkRadius = 10.0,
     required this.sliderValue,
     required this.primaryColor,
-    this.minValue =
-        0.0, // Defina o valor mínimo aqui, se for diferente de 0, ajuste
+    this.minValue = 0.0, // Defina o valor mínimo aqui, se for diferente de 0, ajuste
   });
 
   @override
@@ -2599,12 +2286,10 @@ class CircleTickMarkShape extends SliderTickMarkShape {
     final Canvas canvas = context.canvas;
 
     // Adicionado: Evita desenhar o primeiro tick comparando a posição do tick com um valor de deslocamento mínimo
-    if (center.dx < 100.0)
-      return; // Você pode ajustar o valor '10.0' conforme necessário
+    if (center.dx < 100.0) return; // Você pode ajustar o valor '10.0' conforme necessário
 
     // Resto do código permanece o mesmo...
-    Color color =
-        center.dx < thumbCenter.dx ? primaryColor : PackageColors.whiteSmoke50;
+    Color color = center.dx < thumbCenter.dx ? primaryColor : PackageColors.whiteSmoke50;
 
     final Paint paint = Paint()
       ..color = color
@@ -2655,8 +2340,7 @@ class Sections {
 
   Sections.deepCopy(Sections source)
       : name = source.name,
-        questions =
-            source.questions.map((question) => question.deepCopy()).toList();
+        questions = source.questions.map((question) => question.deepCopy()).toList();
 
   Sections deepCopy() {
     return Sections.deepCopy(this);
@@ -2678,9 +2362,7 @@ class Question {
     return {
       'name': name,
       'answers': answers.map((answer) => answer.toJson()).toList(),
-      'layoutDesign': layoutDesign == LayoutDesign.multipleChoice
-          ? 'multipleChoice'
-          : 'slider',
+      'layoutDesign': layoutDesign == LayoutDesign.multipleChoice ? 'multipleChoice' : 'slider',
     };
   }
 
@@ -2726,10 +2408,8 @@ class ShareIcons {
   final List<bool> enable;
   final List<Function()?> functions;
 
-  List<String> get getPaths =>
-      [whatsappSvgIconPath, mailSvgIconPath, downloadSvgIconPath];
-  List<IconData> get getIcons =>
-      [Icons.phone, Icons.mail, Icons.download_for_offline];
+  List<String> get getPaths => [whatsappSvgIconPath, mailSvgIconPath, downloadSvgIconPath];
+  List<IconData> get getIcons => [Icons.phone, Icons.mail, Icons.download_for_offline];
   List<String> get getLabels => ['Whatsapp', 'E-mail', 'Baixar PDF'];
   List<bool> get enabled => enable;
 
